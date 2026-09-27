@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+*$py.class
+PROVEIDOS_Y_ELEVACIONES_EPG_*.xlsx
+database.db
+.vscode/
+.idea/

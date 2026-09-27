@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proveído N° {{ proveido.codigo_formateado }} {{ proveido.sufijo }}</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 0mm !important;
+        }
+        :root {
+            --m-top: {{ config.get('margen_top', '20') }}mm;
+            --m-right: {{ config.get('margen_right', '18') }}mm;
+            --m-bottom: {{ config.get('margen_bottom', '18') }}mm;
+            --m-left: {{ config.get('margen_left', '22') }}mm;
+        }
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #000;
+            background-color: #f1f5f9;
+            font-size: 10pt;
+            line-height: 1.35;
+        }
+        .page-container {
+            width: 210mm;
+            min-height: 297mm;
+            padding: var(--m-top) var(--m-right) var(--m-bottom) var(--m-left);
+            margin: 20px auto;
+            background: white;
+            box-shadow: 0 4px 25px rgba(0,0,0,0.15);
+            position: relative;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 0mm !important;
+            }
+            html, body {
+                width: 210mm !important;
+                height: 297mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+            }
+            .page-container {
+                width: 210mm !important;
+                height: 297mm !important;
+                max-height: 297mm !important;
+                margin: 0 !important;
+                padding: var(--m-top) var(--m-right) var(--m-bottom) var(--m-left) !important;
+                box-shadow: none !important;
+                box-sizing: border-box !important;
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: hidden !important;
+                page-break-after: avoid !important;
+                page-break-inside: avoid !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        .floating-bar {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(15, 23, 42, 0.95);
+            padding: 8px 18px;
+            border-radius: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            z-index: 999;
+            backdrop-filter: blur(8px);
+        }
+        .tip-impresion {
+            background: rgba(245, 158, 11, 0.18);
+            border: 1px solid rgba(245, 158, 11, 0.45);
+            color: #fde68a;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 7px 18px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background: #475569;
+        }
+        .btn-secondary:hover {
+            background: #334155;
+        }
+
+        /* HEADER INSTITUCIONAL */
+        .doc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+        .header-logo-left {
+            width: 56px;
+            height: auto;
+            object-fit: contain;
+        }
+        .header-logo-right {
+            width: 80px;
+            height: auto;
+            object-fit: contain;
+        }
+        .header-center {
+            text-align: center;
+            flex: 1;
+            padding: 0 8px;
+        }
+        .univ-title {
+            font-size: 11.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin: 0;
+            letter-spacing: 0.2px;
+            line-height: 1.25;
+        }
+        .posgrado-title {
+            font-size: 10.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin: 3px 0 0 0;
+            letter-spacing: 0.1px;
+            line-height: 1.25;
+        }
+        .proveido-num-title {
+            font-size: 13pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin: 5px 0 0 0;
+            letter-spacing: 0.3px;
+        }
+
+        .hr-separator {
+            border: 0;
+            border-top: 1.5px solid #000;
+            margin: 8px 0 14px 0;
+        }
+        .hr-section {
+            border: 0;
+            border-top: 1.5px solid #000;
+            margin: 12px 0 12px 0;
+        }
+
+        /* CUERPO DE DATOS */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10pt;
+            line-height: 1.35;
+        }
+        .data-table td {
+            vertical-align: top;
+            padding: 4px 0;
+        }
+        .col-tag {
+            width: 90px;
+            font-weight: bold;
+            font-size: 10pt;
+            letter-spacing: 0.2px;
+        }
+        .col-val {
+            font-size: 10pt;
+        }
+        .text-bold-upper {
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* CHECKLIST */
+        .checklist-container {
+            margin: 6px 0 8px 0;
+            font-size: 10pt;
+        }
+        .para-label {
+            font-weight: bold;
+            font-size: 10.5pt;
+            margin-bottom: 8px;
+        }
+        .checklist-grid {
+            display: grid;
+            grid-template-columns: 245px 1fr;
+            column-gap: 25px;
+        }
+        .chk-col {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+        .chk-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10pt;
+            color: #000;
+        }
+        .chk-box {
+            width: 14px;
+            height: 14px;
+            border: 1.8px solid #000;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            line-height: 1;
+            flex-shrink: 0;
+            background: #fff;
+        }
+        .chk-box.checked {
+            background-color: #fff;
+            color: #000;
+        }
+
+        /* DISPOSICION */
+        .disposicion-area {
+            font-size: 8.5pt;
+            font-style: italic;
+            text-transform: uppercase;
+            text-align: justify;
+            line-height: 1.45;
+            padding: 4px 0;
+            min-height: 35px;
+            letter-spacing: 0.1px;
+        }
+
+        /* ESPACIO LIMPIO PARA FIRMA DIGITAL */
+        .espacio-firma-digital {
+            flex: 1;
+            min-height: 100px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="floating-bar no-print">
+        <a href="/" class="btn btn-secondary">
+            ← Volver al Sistema
+        </a>
+        <div class="tip-impresion">
+            💡 En impresión: Abre <b>Más ajustes</b> y desmarca <u>Encabezados y pies de página</u> para quitar fecha y localhost
+        </div>
+        <button onclick="mandarImprimir()" class="btn">
+            🖨️ Imprimir / Guardar PDF
+        </button>
+    </div>
+
+    <div class="page-container">
+        <!-- HEADER INSTITUCIONAL -->
+        <div class="doc-header">
+            <img src="/static/img/escudo_unheval_circulo.png" alt="UNHEVAL" class="header-logo-left">
+            <div class="header-center">
+                <div class="univ-title">UNIVERSIDAD NACIONAL HERMILIO VALDIZÁN</div>
+                <div class="posgrado-title">ESCUELA DE POSGRADO</div>
+                <div class="proveido-num-title">
+                    PROVEÍDO N° {{ proveido.codigo_formateado }} {{ proveido.sufijo }}
+                </div>
+            </div>
+            <img src="/static/img/banner_posgrado.png" alt="POSGRADO" class="header-logo-right">
+        </div>
+
+        <hr class="hr-separator">
+
+        <!-- CUERPO DE DATOS -->
+        <table class="data-table">
+            <!-- DESTINATARIOS -->
+            <tr>
+                <td class="col-tag">A:</td>
+                <td class="col-val">
+                    {% for d in proveido.destinatarios %}
+                        <div class="text-bold-upper">{{ d.nombre }}</div>
+                        {% if d.cargo %}
+                            <div class="text-bold-upper" style="margin-bottom: 2px;">{{ d.cargo }}</div>
+                        {% endif %}
+                    {% endfor %}
+                </td>
+            </tr>
+
+            <!-- ASUNTO -->
+            <tr>
+                <td class="col-tag" style="padding-top: 12px;">ASUNTO:</td>
+                <td class="col-val text-bold-upper" style="padding-top: 12px; text-align: justify;">
+                    {{ proveido.asunto }}
+                </td>
+            </tr>
+
+            <!-- REF -->
+            <tr>
+                <td class="col-tag" style="padding-top: 10px;">REF.:</td>
+                <td class="col-val text-bold-upper" style="padding-top: 10px;">
+                    <div>{{ proveido.referencia }}</div>
+                    {% if proveido.remitente_ref %}
+                        <div style="margin-top: 2px;">{{ proveido.remitente_ref }}</div>
+                    {% endif %}
+                </td>
+            </tr>
+
+            <!-- REG y RECIBIDO (DEBAJO DE REG) -->
+            <tr>
+                <td class="col-tag" style="padding-top: 8px;">REG.:</td>
+                <td class="col-val text-bold-upper" style="padding-top: 8px;">
+                    <div>{{ proveido.registro }}</div>
+                    {% if proveido.fecha_recibido_oficial %}
+                    <div style="margin-top: 5px; display: flex; align-items: baseline; gap: 35px;">
+                        <span style="font-weight: 800; min-width: 75px;">RECIBIDO</span>
+                        <span>{{ proveido.fecha_recibido_oficial }}</span>
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+
+            <!-- FECHA EMISION -->
+            <tr>
+                <td class="col-tag" style="padding-top: 8px;">FECHA:</td>
+                <td class="col-val text-bold-upper" style="padding-top: 8px;">
+                    Cayhuayna,&nbsp;&nbsp;&nbsp;&nbsp;{{ proveido.fecha_emision_oficial or proveido.fecha_emision }}
+                </td>
+            </tr>
+        </table>
+
+        <hr class="hr-section">
+
+        <!-- CHECKLIST "Para:" -->
+        <div class="checklist-container">
+            <div class="para-label">Para:</div>
+            <div class="checklist-grid">
+                <!-- Columna 1 -->
+                <div class="chk-col">
+                    <div class="chk-row">
+                        <span class="chk-box {{ 'checked' if 'su_conocimiento' in proveido.check_opciones else '' }}">
+                            {{ '✓' if 'su_conocimiento' in proveido.check_opciones else '' }}
+                        </span>
+                        <span>Su conocimiento</span>
+                    </div>
+                    <div class="chk-row">
+                        <span class="chk-box {{ 'checked' if 'su_atencion' in proveido.check_opciones else '' }}">
+                            {{ '✓' if 'su_atencion' in proveido.check_opciones else '' }}
+                        </span>
+                        <span>Su atención</span>
+                    </div>
+                    <div class="chk-row">
+                        <span class="chk-box {{ 'checked' if 'evaluar' in proveido.check_opciones else '' }}">
+                            {{ '✓' if 'evaluar' in proveido.check_opciones else '' }}
+                        </span>
+                        <span>Evaluar</span>
+                    </div>
+                    <div class="chk-row">
+                        <span class="chk-box {{ 'checked' if 'conocer_opinion' in proveido.check_opciones else '' }}">
+                            {{ '✓' if 'conocer_opinion' in proveido.check_opciones else '' }}
+                        </span>
+                        <span>Conocer su opinión</span>
+                    </div>
+                    <div class="chk-row">
+                        <span class="chk-box {{ 'checked' if 'informar' in proveido.check_opciones else '' }}">
+                            {{ '✓' if 'informar' in proveido.check_opciones else '' }}
+                        </span>
+                        <span>Informar</span>
+                    </div>
+                    <div class="chk-row">
+                        <span class="chk-box {{ 'checked' if 'emitir_resolucion' in proveido.check_opciones else '' }}">
+                            {{ '✓' if 'emitir_resolucion' in proveido.check_opciones else '' }}
+                        </span>
+                        <span>Emitir Resolución</span>
+                    </div>
+                    <div class="chk-row">
+                        <span class="chk-box {{ 'checked' if 'consejo_universitario' in proveido.check_opciones else '' }}">
+                            {{ '✓' if 'consejo_universitario' in proveido.check_opciones else '' }}
+                        </span>
+                        <span>Consejo Universitario</span>
+                    </div>
+                </div>
+
+                <!-- Columna 2 -->
+                <div class="chk-col">
+                    <div class="chk-row" style="align-items: flex-start;">
+                        <span class="chk-box {{ 'checked' if 'informar_presupuesto' in proveido.check_opciones else '' }}" style="margin-top: 1px;">
+                            {{ '✓' if 'informar_presupuesto' in proveido.check_opciones else '' }}
+                        </span>
+                        <span style="line-height: 1.25;">Informar disponibilidad<br>presupuestal</span>
+                    </div>
+                    <div class="chk-row">
+                        <span class="chk-box {{ 'checked' if 'su_difusion' in proveido.check_opciones else '' }}">
+                            {{ '✓' if 'su_difusion' in proveido.check_opciones else '' }}
+                        </span>
+                        <span>Su difusión</span>
+                    </div>
+                    <div class="chk-row">
+                        <span class="chk-box {{ 'checked' if 'preparar_respuesta' in proveido.check_opciones else '' }}">
+                            {{ '✓' if 'preparar_respuesta' in proveido.check_opciones else '' }}
+                        </span>
+                        <span>Preparar respuesta</span>
+                    </div>
+                    <div class="chk-row">
+                        <span class="chk-box {{ 'checked' if 'emitir_dictamen' in proveido.check_opciones else '' }}">
+                            {{ '✓' if 'emitir_dictamen' in proveido.check_opciones else '' }}
+                        </span>
+                        <span>Emitir dictamen</span>
+                    </div>
+                    <div class="chk-row">
+                        <span class="chk-box {{ 'checked' if 'represente' in proveido.check_opciones else '' }}">
+                            {{ '✓' if 'represente' in proveido.check_opciones else '' }}
+                        </span>
+                        <span>Represente</span>
+                    </div>
+                    <div class="chk-row">
+                        <span class="chk-box {{ 'checked' if 'fines_pertinentes' in proveido.check_opciones else '' }}">
+                            {{ '✓' if 'fines_pertinentes' in proveido.check_opciones else '' }}
+                        </span>
+                        <span>Fines Pertinentes</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="hr-section">
+
+        <!-- DISPOSICION -->
+        <div class="disposicion-area">
+            {{ proveido.disposicion }}
+        </div>
+
+        <hr class="hr-section">
+
+        <div class="espacio-firma-digital"></div>
+    </div>
+
+    <script>
+        const originalDocTitle = document.title;
+        let impresionRegistrada = false;
+
+        async function registrarImpresion() {
+            if (impresionRegistrada) return;
+            impresionRegistrada = true;
+            try {
+                await fetch('/api/proveidos/{{ proveido.id }}/marcar-impreso', { method: 'POST' });
+                // Notificar a la ventana principal para refrescar badges
+                if (window.opener && !window.opener.closed && window.opener.cargarProveidos) {
+                    window.opener.cargarProveidos();
+                    if (window.opener.cargarRangoSelects) window.opener.cargarRangoSelects();
+                }
+            } catch (e) {
+                console.error("Error al registrar impresión:", e);
+            }
+        }
+
+        function mandarImprimir() {
+            registrarImpresion();
+            window.print();
+        }
+
+        window.addEventListener('beforeprint', function() {
+            document.title = "";
+            registrarImpresion();
+        });
+
+        window.addEventListener('afterprint', function() {
+            document.title = originalDocTitle;
+        });
+
+        if (new URLSearchParams(window.location.search).get('autoprint') === '1') {
+            window.onload = function() {
+                setTimeout(function() { mandarImprimir(); }, 400);
+            };
+        }
+    </script>
+</body>
+</html>

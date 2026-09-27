@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Proveídos y Elevaciones - UNHEVAL EPG</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js for Executive Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-btn.active {
+            border-bottom: 2px solid #2563eb;
+            color: #1d4ed8;
+            font-weight: 600;
+        }
+        .filter-pill.active {
+            background-color: #1e40af;
+            color: #ffffff;
+            border-color: #1e40af;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- TOP HEADER -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Branding -->
+                <div class="flex items-center gap-3">
+                    <img src="/static/img/escudo_unheval_circulo.png" alt="UNHEVAL" class="h-11 w-auto">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 tracking-wide uppercase">UNHEVAL</span>
+                            <span class="text-xs text-slate-500 font-medium">Escuela de Posgrado</span>
+                        </div>
+                        <h1 class="text-base font-bold text-slate-900 leading-tight">Sistema de Proveídos y Elevaciones</h1>
+                    </div>
+                </div>
+
+                <!-- Global Actions -->
+                <div class="flex items-center gap-2">
+                    <a href="/api/exportar-excel" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-lg text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition shadow-xs">
+                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Exportar a Excel
+                    </a>
+                    <button onclick="abrirModalProveido()" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Nuevo Proveído
+                    </button>
+                    <button onclick="abrirModalElevacion()" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Nueva Elevación
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- NAVIGATION TABS -->
+        <div class="border-t border-slate-100 bg-slate-50/50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <nav class="flex space-x-8 text-sm">
+                    <button onclick="cambiarTab('proveidos')" id="tab-nav-proveidos" class="tab-btn active py-3 px-1 text-slate-600 hover:text-slate-900 border-b-2 border-transparent transition flex items-center gap-2">
+                        <span>📄 Proveídos</span>
+                        <span id="badge-total-prov" class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-semibold">...</span>
+                    </button>
+                    <button onclick="cambiarTab('elevaciones')" id="tab-nav-elevaciones" class="tab-btn py-3 px-1 text-slate-600 hover:text-slate-900 border-b-2 border-transparent transition flex items-center gap-2">
+                        <span>📑 Elevaciones</span>
+                        <span id="badge-total-elev" class="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded-full font-semibold">...</span>
+                    </button>
+                    <button onclick="cambiarTab('estadisticas')" id="tab-nav-estadisticas" class="tab-btn py-3 px-1 text-slate-600 hover:text-slate-900 border-b-2 border-transparent transition flex items-center gap-2">
+                        <span>📊 Dashboard Ejecutivo</span>
+                    </button>
+                    <button onclick="cambiarTab('configuracion')" id="tab-nav-configuracion" class="tab-btn py-3 px-1 text-slate-600 hover:text-slate-900 border-b-2 border-transparent transition flex items-center gap-2">
+                        <span>⚙️ Configuración e Impresión</span>
+                    </button>
+                    <button onclick="cambiarTab('papelera')" id="tab-nav-papelera" class="tab-btn py-3 px-1 text-slate-600 hover:text-slate-900 border-b-2 border-transparent transition flex items-center gap-2">
+                        <span>🗑️ Papelera (30 días)</span>
+                        <span id="badge-total-papelera" class="bg-rose-100 text-rose-800 text-xs px-2 py-0.5 rounded-full font-semibold hidden">0</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+
+        <!-- ======================= TAB PROVEÍDOS ======================= -->
+        <div id="tab-proveidos" class="space-y-4">
+            <!-- Search & Actions Bar -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex-1 min-w-[280px] relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+                        <input type="text" id="busqueda-prov" oninput="debounceBuscarProveidos()" placeholder="Buscar por N° proveído, destinatario, asunto, REG expediente, referencia..." class="block w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                    </div>
+
+                    <!-- Filtro por Estado de Impresión (Para saber qué falta imprimir) -->
+                    <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
+                        <button onclick="filtrarEstadoImpresion('todos')" id="pill-imp-todos" class="filter-pill active px-2.5 py-1 rounded-md font-medium transition">
+                            Todos
+                        </button>
+                        <button onclick="filtrarEstadoImpresion('pendientes')" id="pill-imp-pendientes" class="filter-pill px-2.5 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 transition flex items-center gap-1">
+                            <span>⏳ Pendientes</span>
+                            <span id="badge-pendientes-count" class="bg-amber-200 text-amber-900 text-[10px] px-1.5 py-0.2 rounded-full font-bold">0</span>
+                        </button>
+                        <button onclick="filtrarEstadoImpresion('impresos')" id="pill-imp-impresos" class="filter-pill px-2.5 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 transition">
+                            ✓ Impresos
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-1 text-xs text-slate-500">
+                            <span>Desde:</span>
+                            <input type="date" id="filtro-desde-prov" onchange="cargarProveidos(1)" class="border border-slate-200 rounded-md px-2 py-1 text-xs">
+                        </div>
+                        <div class="flex items-center gap-1 text-xs text-slate-500">
+                            <span>Hasta:</span>
+                            <input type="date" id="filtro-hasta-prov" onchange="cargarProveidos(1)" class="border border-slate-200 rounded-md px-2 py-1 text-xs">
+                        </div>
+                        <button onclick="limpiarFiltrosProv()" class="text-xs text-slate-500 hover:text-slate-800 underline">Limpiar</button>
+                    </div>
+
+                    <!-- Batch selected action button -->
+                    <div id="batch-prov-bar" class="hidden flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200">
+                        <span id="batch-prov-count" class="text-xs font-semibold text-blue-800">0 seleccionados</span>
+                        <button onclick="imprimirSeleccionadosProv()" class="text-xs bg-blue-600 text-white px-2.5 py-1 rounded font-medium hover:bg-blue-700 transition">
+                            🖨️ Imprimir Selección
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Range Print Tool (100% PROTEGIDO: MENÚS DESPLEGABLES, SIN ESCRITURA MANUAL NI NEGATIVOS) -->
+                <div class="flex flex-wrap items-center justify-between pt-2.5 pb-0.5 border-t border-slate-100 text-xs text-slate-600 gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-bold text-slate-800 flex items-center gap-1.5">
+                            <span class="text-blue-600">🖨️</span>
+                            <span>Impresión por Rango:</span>
+                        </span>
+
+                        <div class="inline-flex items-center gap-1.5 bg-slate-100/80 px-2 py-1 rounded-lg border border-slate-200">
+                            <span class="text-slate-600 font-medium">Del N°</span>
+                            <select id="rango-desde" onchange="alCambiarRangoDesde()" class="bg-white border border-slate-300 rounded px-2 py-1 font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 cursor-pointer text-xs min-w-[90px]">
+                                <!-- Opciones cargadas automáticamente -->
+                            </select>
+
+                            <span class="text-slate-600 font-medium">al N°</span>
+                            <select id="rango-hasta" onchange="alCambiarRangoHasta()" class="bg-white border border-slate-300 rounded px-2 py-1 font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 cursor-pointer text-xs min-w-[90px]">
+                                <!-- Opciones cargadas automáticamente -->
+                            </select>
+
+                            <span id="rango-badge-count" class="bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-full ml-1">
+                                0 proveídos
+                            </span>
+                        </div>
+
+                        <!-- Presets sin escribir -->
+                        <div class="flex items-center gap-1">
+                            <button type="button" onclick="presetRango(10)" title="Seleccionar los últimos 10 emitidos" class="px-2 py-1 rounded bg-slate-200/80 hover:bg-slate-300 text-slate-700 text-[11px] font-semibold transition">
+                                Últimos 10
+                            </button>
+                            <button type="button" onclick="presetRango(25)" title="Seleccionar los últimos 25 emitidos" class="px-2 py-1 rounded bg-slate-200/80 hover:bg-slate-300 text-slate-700 text-[11px] font-semibold transition">
+                                Últimos 25
+                            </button>
+                            <button type="button" onclick="presetSoloPendientes()" id="btn-preset-pendientes" title="Seleccionar el rango de no impresos" class="px-2 py-1 rounded bg-amber-100 hover:bg-amber-200 text-amber-800 text-[11px] font-bold transition">
+                                ⏳ Solo Pendientes
+                            </button>
+                        </div>
+
+                        <button onclick="imprimirPorRango()" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1 rounded-md font-bold transition shadow-xs flex items-center gap-1.5 text-xs">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                            <span>Generar Lote</span>
+                        </button>
+                    </div>
+
+                    <div class="text-[11px] text-slate-500 flex items-center gap-2">
+                        <span>💡 Haz clic en <span class="font-semibold text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded">✓ Impreso</span> o <span class="font-semibold text-amber-700 bg-amber-50 px-1 py-0.5 rounded">⏳ No impreso</span> para cambiar el estado de cualquier fila.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Card -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-600 uppercase text-[11px] font-semibold tracking-wider">
+                            <tr>
+                                <th scope="col" class="p-3 w-8 text-center">
+                                    <input type="checkbox" id="check-all-prov" onchange="toggleSelectAllProv(this)" class="rounded text-blue-600 focus:ring-blue-500">
+                                </th>
+                                <th scope="col" class="py-3 px-3 w-32">N° Proveído</th>
+                                <th scope="col" class="py-3 px-3 w-28 text-center">Estado Impresión</th>
+                                <th scope="col" class="py-3 px-4">Destinatario(s) & Cargo</th>
+                                <th scope="col" class="py-3 px-4">Asunto / Referencia</th>
+                                <th scope="col" class="py-3 px-3 w-28">REG / Fechas</th>
+                                <th scope="col" class="py-3 px-3 w-36 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-proveidos-body" class="divide-y divide-slate-100">
+                            <tr>
+                                <td colspan="7" class="p-8 text-center text-slate-400">Cargando proveídos...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="px-4 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-600" id="paginacion-prov-wrapper">
+                    <div id="paginacion-info-prov">Mostrando...</div>
+                    <div class="flex items-center gap-1" id="paginacion-botones-prov"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================= TAB ELEVACIONES ======================= -->
+        <div id="tab-elevaciones" class="hidden space-y-4">
+            <!-- Search & Actions Bar -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex-1 min-w-[280px] relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+                        <input type="text" id="busqueda-elev" oninput="debounceBuscarElevaciones()" placeholder="Buscar por N° elevación, destinatario, asunto, REG, referencia..." class="block w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+                    </div>
+
+                    <!-- Filtro por Estado de Impresión Elevaciones -->
+                    <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
+                        <button onclick="filtrarEstadoImpresionElev('todos')" id="pill-imp-elev-todos" class="filter-pill-elev active px-2.5 py-1 rounded-md font-medium transition">
+                            Todos
+                        </button>
+                        <button onclick="filtrarEstadoImpresionElev('pendientes')" id="pill-imp-elev-pendientes" class="filter-pill-elev px-2.5 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 transition flex items-center gap-1">
+                            <span>⏳ Pendientes</span>
+                            <span id="badge-pendientes-count-elev" class="bg-amber-200 text-amber-900 text-[10px] px-1.5 py-0.2 rounded-full font-bold">0</span>
+                        </button>
+                        <button onclick="filtrarEstadoImpresionElev('impresos')" id="pill-imp-elev-impresos" class="filter-pill-elev px-2.5 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 transition">
+                            ✓ Impresos
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-1.5 text-xs text-slate-500">
+                            <span>Desde:</span>
+                            <input type="date" id="filtro-desde-elev" onchange="cargarElevaciones(1)" class="border border-slate-200 rounded-md px-2 py-1 text-xs">
+                        </div>
+                        <div class="flex items-center gap-1.5 text-xs text-slate-500">
+                            <span>Hasta:</span>
+                            <input type="date" id="filtro-hasta-elev" onchange="cargarElevaciones(1)" class="border border-slate-200 rounded-md px-2 py-1 text-xs">
+                        </div>
+                        <button onclick="limpiarFiltrosElev()" class="text-xs text-slate-500 hover:text-slate-800 underline">Limpiar</button>
+                    </div>
+
+                    <div id="batch-elev-bar" class="hidden flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200">
+                        <span id="batch-elev-count" class="text-xs font-semibold text-indigo-800">0 seleccionados</span>
+                        <button onclick="imprimirSeleccionadosElev()" class="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded font-medium hover:bg-indigo-700 transition">
+                            🖨️ Imprimir Selección
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Range Print Tool Elevaciones (100% PROTEGIDO: MENÚS DESPLEGABLES, SIN ESCRITURA MANUAL NI NEGATIVOS) -->
+                <div class="flex flex-wrap items-center justify-between pt-2.5 pb-0.5 border-t border-slate-100 text-xs text-slate-600 gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-bold text-slate-800 flex items-center gap-1.5">
+                            <span class="text-indigo-600">🖨️</span>
+                            <span>Impresión por Rango:</span>
+                        </span>
+
+                        <div class="inline-flex items-center gap-1.5 bg-slate-100/80 px-2 py-1 rounded-lg border border-slate-200">
+                            <span class="text-slate-600 font-medium">Del N°</span>
+                            <select id="rango-desde-elev" onchange="alCambiarRangoDesdeElev()" class="bg-white border border-slate-300 rounded px-2 py-1 font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 cursor-pointer text-xs min-w-[90px]">
+                                <!-- Opciones cargadas automáticamente -->
+                            </select>
+
+                            <span class="text-slate-600 font-medium">al N°</span>
+                            <select id="rango-hasta-elev" onchange="alCambiarRangoHastaElev()" class="bg-white border border-slate-300 rounded px-2 py-1 font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 cursor-pointer text-xs min-w-[90px]">
+                                <!-- Opciones cargadas automáticamente -->
+                            </select>
+
+                            <span id="rango-badge-count-elev" class="bg-indigo-100 text-indigo-800 text-[11px] font-bold px-2 py-0.5 rounded-full ml-1">
+                                0 elevaciones
+                            </span>
+                        </div>
+
+                        <!-- Presets sin escribir -->
+                        <div class="flex items-center gap-1">
+                            <button type="button" onclick="presetRangoElev(10)" title="Seleccionar las últimas 10 emitidas" class="px-2 py-1 rounded bg-slate-200/80 hover:bg-slate-300 text-slate-700 text-[11px] font-semibold transition">
+                                Últimas 10
+                            </button>
+                            <button type="button" onclick="presetRangoElev(25)" title="Seleccionar las últimas 25 emitidas" class="px-2 py-1 rounded bg-slate-200/80 hover:bg-slate-300 text-slate-700 text-[11px] font-semibold transition">
+                                Últimas 25
+                            </button>
+                            <button type="button" onclick="presetSoloPendientesElev()" id="btn-preset-pendientes-elev" title="Seleccionar el rango de no impresas" class="px-2 py-1 rounded bg-amber-100 hover:bg-amber-200 text-amber-800 text-[11px] font-bold transition">
+                                ⏳ Solo Pendientes
+                            </button>
+                        </div>
+
+                        <button onclick="imprimirPorRangoElev()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1 rounded-md font-bold transition shadow-xs flex items-center gap-1.5 text-xs">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                            <span>Generar Lote</span>
+                        </button>
+                    </div>
+
+                    <div class="text-[11px] text-slate-500 flex items-center gap-2">
+                        <span>💡 Haz clic en <span class="font-semibold text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded">✓ Impreso</span> o <span class="font-semibold text-amber-700 bg-amber-50 px-1 py-0.5 rounded">⏳ No impreso</span> para cambiar el estado de cualquier fila.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Card -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-600 uppercase text-[11px] font-semibold tracking-wider">
+                            <tr>
+                                <th scope="col" class="p-3 w-8 text-center">
+                                    <input type="checkbox" id="check-all-elev" onchange="toggleSelectAllElev(this)" class="rounded text-indigo-600 focus:ring-indigo-500">
+                                </th>
+                                <th scope="col" class="py-3 px-3 w-32">N° Elevación</th>
+                                <th scope="col" class="py-3 px-3 w-28 text-center">Estado Impresión</th>
+                                <th scope="col" class="py-3 px-4">Destinatario</th>
+                                <th scope="col" class="py-3 px-4">Asunto / Referencia</th>
+                                <th scope="col" class="py-3 px-3 w-28">REG / Fechas</th>
+                                <th scope="col" class="py-3 px-3 w-36 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-elevaciones-body" class="divide-y divide-slate-100">
+                            <tr>
+                                <td colspan="7" class="p-8 text-center text-slate-400">Cargando elevaciones...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="px-4 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-600" id="paginacion-elev-wrapper">
+                    <div id="paginacion-info-elev">Mostrando...</div>
+                    <div class="flex items-center gap-1" id="paginacion-botones-elev"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================= TAB DASHBOARD EJECUTIVO (TOMA DE DECISIONES) ======================= -->
+        <div id="tab-estadisticas" class="hidden space-y-6">
+            <!-- Executive KPI Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Proveídos Emitidos</div>
+                    <div class="text-3xl font-extrabold text-blue-600 mt-2" id="dash-total-prov">0</div>
+                    <div class="text-xs text-slate-500 mt-1">Periodo académico 2026</div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Elevaciones a Consejo</div>
+                    <div class="text-3xl font-extrabold text-indigo-600 mt-2" id="dash-total-elev">0</div>
+                    <div class="text-xs text-slate-500 mt-1">Expedientes elevados</div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Expedientes Únicos (REG)</div>
+                    <div class="text-3xl font-extrabold text-emerald-600 mt-2" id="dash-total-reg">0</div>
+                    <div class="text-xs text-slate-500 mt-1">Trámites atendidos por Dirección</div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Control de Impresión</div>
+                    <div class="flex items-center gap-3 mt-2">
+                        <div>
+                            <span class="text-2xl font-bold text-emerald-600" id="dash-total-impresos">0</span>
+                            <span class="text-[11px] block text-slate-400">Impresos</span>
+                        </div>
+                        <div class="h-8 w-px bg-slate-200"></div>
+                        <div>
+                            <span class="text-2xl font-bold text-amber-600" id="dash-total-pendientes">0</span>
+                            <span class="text-[11px] block text-slate-400">Pendientes</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Gráfico 1: Volumen Mensual -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900">Volumen Documental por Mes (2026)</h3>
+                            <p class="text-xs text-slate-500">Muestra los picos de carga administrativa durante el año</p>
+                        </div>
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700">Mensual</span>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="chart-volumen-mes"></canvas>
+                    </div>
+                </div>
+
+                <!-- Gráfico 2: Carga por Destinatario -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900">Carga por Destinatario / Área (Top 7)</h3>
+                            <p class="text-xs text-slate-500">Concentración de trámites derivados por Dirección</p>
+                        </div>
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700">Demanda</span>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="chart-destinatarios"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico 3 & Resumen de Categorías -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs lg:col-span-1">
+                    <h3 class="text-sm font-bold text-slate-900 mb-1">Distribución por Tipo de Trámite</h3>
+                    <p class="text-xs text-slate-500 mb-4">Clasificación temática de la gestión documental</p>
+                    <div class="h-56 flex items-center justify-center">
+                        <canvas id="chart-categorias"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs lg:col-span-2">
+                    <h3 class="text-sm font-bold text-slate-900 mb-1">Hallazgos para Toma de Decisiones Directivas</h3>
+                    <p class="text-xs text-slate-500 mb-4">Análisis del flujo administrativo en la Escuela de Posgrado</p>
+                    <div class="space-y-3 text-xs text-slate-700 leading-relaxed">
+                        <div class="p-3 rounded-lg bg-blue-50/70 border border-blue-100 flex items-start gap-2.5">
+                            <span class="text-base">📌</span>
+                            <div>
+                                <strong class="text-blue-900">Picos de Carga (Marzo y Mayo):</strong> Los meses con mayor emisión de proveídos corresponden a inicio de semestre y procesos de admisión, donde el volumen supera los 170 proveídos mensuales.
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-amber-50/70 border border-amber-100 flex items-start gap-2.5">
+                            <span class="text-base">⚡</span>
+                            <div>
+                                <strong class="text-amber-900">Concentración en Gestión Económica (54%):</strong> Más de la mitad de todos los proveídos emitidos en la EPG van dirigidos al Área de Gestión Económica (pagos de docentes y expedientes de conciliación).
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-emerald-50/70 border border-emerald-100 flex items-start gap-2.5">
+                            <span class="text-base">✅</span>
+                            <div>
+                                <strong class="text-emerald-900">Control de Impresión y Cero Duplicidad:</strong> Ahora el sistema rastrea qué documentos ya fueron impresos y alerta ante registros duplicados, eliminando errores de doble trámite.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================= TAB CONFIGURACIÓN E INDICACIONES ======================= -->
+        <div id="tab-configuracion" class="hidden space-y-6">
+            <!-- Header de Sección -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">⚙️</span>
+                        <h2 class="text-lg font-bold text-slate-900">Configuración Central e Indicaciones de Impresión Oficial</h2>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">Establece los márgenes de impresión en hojas A4, espacio de firma y directivas institucionales que aplican automáticamente a todos los proveídos y elevaciones.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="restablecerConfiguracionDefecto()" class="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        <span>Restablecer Estándar EPG</span>
+                    </button>
+                    <button onclick="guardarConfiguracion()" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        <span>Guardar para Todos los Documentos</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Panel 1: Ajuste de Márgenes A4 y Altura de Firma (5 Cols) -->
+                <div class="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <span>📐 Márgenes de Hoja A4 (Milímetros)</span>
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Controla la distribución de los márgenes físicos para ajustarse a las bandejas de las impresoras láser del área.</p>
+                    </div>
+
+                    <form id="form-configuracion" onsubmit="event.preventDefault(); guardarConfiguracion();" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                                    Margen Superior (Top)
+                                </label>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="cfg-margen-top" min="5" max="40" step="1" oninput="actualizarPreviewA4()" required class="w-full text-xs font-bold border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                                    <span class="text-xs text-slate-500 font-semibold">mm</span>
+                                </div>
+                                <span class="text-[10px] text-slate-400">Estándar: 20 mm</span>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                                    Margen Inferior (Bottom)
+                                </label>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="cfg-margen-bottom" min="5" max="40" step="1" oninput="actualizarPreviewA4()" required class="w-full text-xs font-bold border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                                    <span class="text-xs text-slate-500 font-semibold">mm</span>
+                                </div>
+                                <span class="text-[10px] text-slate-400">Estándar: 18 mm</span>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                                    Margen Izquierdo (Left)
+                                </label>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="cfg-margen-left" min="10" max="45" step="1" oninput="actualizarPreviewA4()" required class="w-full text-xs font-bold border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                                    <span class="text-xs text-slate-500 font-semibold">mm</span>
+                                </div>
+                                <span class="text-[10px] text-slate-400">Para perforado: 22 mm</span>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                                    Margen Derecho (Right)
+                                </label>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="cfg-margen-right" min="5" max="40" step="1" oninput="actualizarPreviewA4()" required class="w-full text-xs font-bold border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                                    <span class="text-xs text-slate-500 font-semibold">mm</span>
+                                </div>
+                                <span class="text-[10px] text-slate-400">Estándar: 18 mm</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-t border-slate-100">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">
+                                Espacio Libre para Firma Digital
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="cfg-altura-firma" min="80" max="220" step="5" oninput="actualizarPreviewA4()" required class="w-28 text-xs font-bold border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                                <span class="text-xs text-slate-500 font-semibold">píxeles</span>
+                                <span class="text-[11px] text-slate-400">(Área libre de estampas y sellos)</span>
+                            </div>
+                        </div>
+
+                        <!-- Miniatura Preview de Hoja A4 -->
+                        <div class="pt-3 border-t border-slate-100">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-semibold text-slate-700">Representación a Escala (A4)</span>
+                                <span id="preview-resumen-margenes" class="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">20 / 22 / 18 / 18 mm</span>
+                            </div>
+                            <div class="flex justify-center p-3 bg-slate-100/70 rounded-xl border border-slate-200">
+                                <div id="mini-hoja-a4" class="relative bg-white shadow-sm border border-slate-300 rounded" style="width: 130px; height: 184px; padding: 8px;">
+                                    <div class="w-full h-2 bg-slate-200 rounded-xs mb-1"></div>
+                                    <div class="w-3/4 h-1.5 bg-slate-200 rounded-xs mb-2"></div>
+                                    <div class="space-y-1">
+                                        <div class="w-full h-1 bg-slate-100 rounded-xs"></div>
+                                        <div class="w-full h-1 bg-slate-100 rounded-xs"></div>
+                                        <div class="w-5/6 h-1 bg-slate-100 rounded-xs"></div>
+                                    </div>
+                                    <!-- Caja de firma digital -->
+                                    <div class="absolute bottom-2 left-2 right-2 border border-dashed border-blue-400 bg-blue-50/50 rounded flex items-center justify-center text-[8px] font-bold text-blue-700" style="height: 38px;">
+                                        Zona Firma Digital
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <button type="submit" class="w-full py-2.5 px-4 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition">
+                                Aplicar y Guardar Márgenes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Panel 2: Indicaciones Oficiales para el Operador (7 Cols) -->
+                <div class="lg:col-span-7 space-y-6">
+                    <!-- Tarjeta de Instrucciones de Impresión -->
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="p-2 rounded-lg bg-emerald-50 text-emerald-700 font-bold text-sm">🖨️</span>
+                                <div>
+                                    <h3 class="text-sm font-bold text-slate-900">Indicaciones Oficiales de Impresión (Estándar UNHEVAL)</h3>
+                                    <p class="text-xs text-slate-500">Protocolo obligatorio para emisión de Proveídos y Elevaciones institucionales</p>
+                                </div>
+                            </div>
+                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Oficial</span>
+                        </div>
+
+                        <div class="space-y-3 text-xs text-slate-700">
+                            <!-- Indicación 1: Sin encabezados de navegador -->
+                            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</div>
+                                <div class="space-y-1">
+                                    <h4 class="font-bold text-slate-900">Eliminar Título y Dirección Web del Navegador (Encabezados y Pies)</h4>
+                                    <p class="text-slate-600 leading-relaxed">
+                                        Para que <strong>nunca aparezca el texto "PROVEÍDO N°..." en la parte superior ni "http://localhost:5000..." en el pie de página</strong>:
+                                    </p>
+                                    <ul class="list-disc pl-4 text-slate-600 space-y-0.5 mt-1 font-medium">
+                                        <li>El sistema ya incorpora la regla técnica <code class="bg-slate-200 px-1 py-0.2 rounded text-[11px]">@page { margin: 0; }</code> que bloquea las cabeceras del navegador.</li>
+                                        <li>En el diálogo de impresión de Chrome/Edge, en <span class="font-semibold text-slate-800">"Más opciones"</span>, asegúrese de que la casilla <span class="font-bold text-red-600">"Encabezados y pies de página"</span> esté <span class="underline">desmarcada</span>.</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- Indicación 2: Tamaño de Papel y Escala -->
+                            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</div>
+                                <div class="space-y-1">
+                                    <h4 class="font-bold text-slate-900">Tamaño de Hoja y Escala Predeterminada</h4>
+                                    <ul class="list-disc pl-4 text-slate-600 space-y-0.5 mt-1 font-medium">
+                                        <li><strong>Tamaño de Papel:</strong> Seleccione estrictamente <span class="font-bold text-slate-900">A4 (210 x 297 mm)</span>.</li>
+                                        <li><strong>Orientación:</strong> Vertical / Portrait.</li>
+                                        <li><strong>Escala:</strong> 100% (Predeterminada) o "Ajustar al área imprimible".</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- Indicación 3: Firma Digital -->
+                            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">3</div>
+                                <div class="space-y-1">
+                                    <h4 class="font-bold text-slate-900">Zona Limpia para Firma y Certificado Digital</h4>
+                                    <p class="text-slate-600 leading-relaxed">
+                                        El área inferior del documento <strong>se mantiene deliberadamente libre de firmas o sellos escaneados</strong> (espacio limpio de 140px). Esto permite que el software del área estampe el certificado digital de la Directora sin sobreponerse al texto ni invadir el contenido.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Indicación 4: Control de Impresos -->
+                            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">4</div>
+                                <div class="space-y-1">
+                                    <h4 class="font-bold text-slate-900">Control de Proveídos Impresos y No Impresos</h4>
+                                    <p class="text-slate-600 leading-relaxed">
+                                        Cada vez que se imprime un proveído individual o un lote, el sistema lo contabiliza en tiempo real. Utilice la pestaña <span class="font-semibold text-amber-800 bg-amber-50 px-1 py-0.5 rounded">⏳ Pendientes</span> para ver solo los que faltan enviar a la impresora y evitar duplicados en físico.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Parámetros Institucionales Generales -->
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <h3 class="text-sm font-bold text-slate-900">🏛️ Encabezados y Datos Institucionales</h3>
+                            <span class="text-xs text-slate-400">Escuela de Posgrado</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                            <div>
+                                <label class="block font-semibold text-slate-700 mb-1">Año de Ejercicio Activo</label>
+                                <input type="number" id="cfg-anio-activo" value="2026" class="w-full border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-700 mb-1">Lugar de Emisión</label>
+                                <input type="text" id="cfg-lugar-defecto" value="Cayhuayna" class="w-full border border-slate-300 rounded-lg p-2 text-xs text-slate-800 focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block font-semibold text-slate-700 mb-1">Sufijo Oficial de Numeración</label>
+                                <input type="text" id="cfg-sufijo-defecto" value="-2026-UNHEVAL/EPG-D" class="w-full border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================= TAB PAPELERA (HISTORIAL DE BORRADOS) ======================= -->
+        <div id="tab-papelera" class="tab-content hidden space-y-6">
+            <!-- Header de la Papelera -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-2xl">
+                        🗑️
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-base font-bold text-slate-900">Historial de Borrados (Papelera de Reciclaje)</h2>
+                            <span id="papelera-contador-badge" class="bg-rose-100 text-rose-800 text-xs px-2.5 py-0.5 rounded-full font-bold">0 elementos</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Los documentos eliminados se conservan por <strong>30 días (1 mes)</strong> para su posible recuperación. Pasado este tiempo se depuran automáticamente.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="alternarModoConfirmacionPapelera()" id="btn-toggle-modo-papelera" class="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition flex items-center gap-1.5" title="Cambiar modo de confirmación">
+                        <span id="icon-modo-papelera">🛡️</span>
+                        <span id="txt-modo-papelera">Pide confirmación</span>
+                    </button>
+                    <button onclick="cargarPapelera()" class="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        Actualizar
+                    </button>
+                    <button onclick="solicitarVaciarPapelera()" id="btn-vaciar-papelera" class="px-3.5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-sm transition flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        Vaciar Papelera
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabla de Documentos Eliminados -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 text-xs uppercase tracking-wider font-semibold">
+                            <tr>
+                                <th class="py-3 px-4">Documento</th>
+                                <th class="py-3 px-4">Destinatario / Asunto</th>
+                                <th class="py-3 px-4">Fecha de Eliminación</th>
+                                <th class="py-3 px-4 text-center">Tiempo para Depuración</th>
+                                <th class="py-3 px-4 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="papelera-lista" class="divide-y divide-slate-100 text-slate-700">
+                            <!-- Filas cargadas dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Estado Vacío -->
+                <div id="papelera-vacia" class="hidden py-16 px-4 text-center space-y-3">
+                    <div class="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto text-2xl">
+                        ✨
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-800">La Papelera de Reciclaje está vacía</h3>
+                    <p class="text-xs text-slate-400 max-w-sm mx-auto">
+                        No hay proveídos ni elevaciones eliminados recientemente. Todos los documentos activos se conservan seguros.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ======================= MODAL PROVEÍDO ======================= -->
+    <div id="modal-proveido" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" onclick="cerrarModalProveido()"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 z-10 space-y-4 my-8">
+                <!-- Header -->
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-lg font-bold text-slate-900" id="modal-prov-titulo">Registrar Nuevo Proveído</h2>
+                            <span id="badge-clonando" class="hidden text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-800">Copia de Proveído</span>
+                        </div>
+                        <p class="text-xs text-slate-500">Complete los datos o elija una plantilla rápida para auto-completar texto y casillas.</p>
+                    </div>
+                    <button onclick="cerrarModalProveido()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <!-- Selector de Plantillas Rápidas con Auto-Check y Botón de Nueva Plantilla -->
+                <div class="bg-blue-50/60 border border-blue-100 rounded-xl p-3 space-y-2">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <span class="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                            <span>⚡ Plantillas Predefinidas:</span>
+                            <span class="text-[11px] font-normal text-blue-700">Autocompleta texto, casillas y destinatario</span>
+                        </span>
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" onclick="abrirModalNuevaPlantilla('proveido')" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1 rounded-md shadow-xs transition flex items-center gap-1">
+                                <span>➕</span> Guardar actual como Plantilla
+                            </button>
+                            <button type="button" onclick="abrirModalGestionPlantillas('proveido')" title="Gestionar y ver todas las plantillas" class="text-xs bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold px-2 py-1 rounded-md transition flex items-center gap-1">
+                                <span>⚙️</span>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Badges dinámicos de plantillas -->
+                    <div id="plantillas-container-prov" class="flex flex-wrap items-center gap-1.5 pt-1">
+                        <!-- Generados dinámicamente con los datos reales -->
+                    </div>
+                </div>
+
+                <form id="form-proveido" onsubmit="guardarProveido(event)" class="space-y-4">
+                    <input type="hidden" id="prov-id">
+
+                    <!-- Fila 1: Número, Año, Sufijo (ESTRICTAMENTE POSITIVOS) -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">N° de Proveído</label>
+                            <input type="number" id="prov-numero" min="1" step="1" required
+                                   onkeydown="if(event.key === '-' || event.key === 'e' || event.key === '+' || event.key === '.') event.preventDefault();"
+                                   oninput="if(this.value < 1 && this.value !== '') this.value = 1;"
+                                   class="w-full text-base font-bold text-blue-700 bg-white border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Año</label>
+                            <input type="number" id="prov-anio" min="2020" value="2026" class="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Sufijo Institucional</label>
+                            <input type="text" id="prov-sufijo" value="-2026-UNHEVAL/EPG-D" class="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+
+                    <!-- Fila 2: Destinatarios Dinámicos -->
+                    <div class="border border-slate-200 rounded-xl p-3 bg-white space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-bold uppercase tracking-wider text-slate-700">Destinatario(s) y Cargo(s)</label>
+                            <button type="button" onclick="agregarFilaDestinatario()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold px-2.5 py-1 rounded-md transition flex items-center gap-1">
+                                <span>+</span> Añadir Destinatario
+                            </button>
+                        </div>
+                        <div id="destinatarios-container" class="space-y-2"></div>
+                    </div>
+
+                    <!-- Fila 3: Asunto -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Asunto del Proveído</label>
+                        <textarea id="prov-asunto" rows="2" required placeholder="Describa el asunto completo..." class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500"></textarea>
+                    </div>
+
+                    <!-- Fila 4: Referencia y Remitente TA -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Documento de Referencia (REF.)</label>
+                            <input type="text" id="prov-referencia" placeholder="Ej. INFORME N° 047-2025-UNHEVAL-NAHP/D" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Remitente de Referencia / Cargo (TA)</label>
+                            <input type="text" id="prov-remitente-ref" placeholder="Ej. DRA. NELLY ADELA HILARIO PORRAS" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+
+                    <!-- Fila 5: Registro, Fecha Recibido, Fecha Emisión -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="relative">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">N° de Registro (REG / Expediente)</label>
+                            <input type="text" id="prov-registro" oninput="debounceVerificarReg()" placeholder="Ej. 13791" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500">
+                            <!-- Duplicate Alert Badge -->
+                            <div id="alerta-reg-duplicado" class="hidden mt-1 p-2 bg-amber-50 border border-amber-200 rounded-md text-[11px] text-amber-800 flex items-start gap-1">
+                                <span class="font-bold">⚠️</span>
+                                <span id="alerta-reg-texto"></span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Fecha Recibido</label>
+                            <input type="date" id="prov-fecha-recibido" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-xs font-semibold text-slate-700">Fecha Emisión</label>
+                                <button type="button" onclick="setHoy('prov-fecha-emision')" class="text-[11px] text-blue-600 hover:underline">Hoy</button>
+                            </div>
+                            <input type="date" id="prov-fecha-emision" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+
+                    <!-- Fila 6: Checkboxes oficiales de la EPG -->
+                    <div class="border border-slate-200 rounded-xl p-3 bg-slate-50/70">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Para (Acciones a realizar)</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                            <div class="space-y-1.5">
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-blue-700">
+                                    <input type="checkbox" name="check_prov" value="su_conocimiento" class="rounded text-blue-600 focus:ring-blue-500">
+                                    <span>Su conocimiento</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-blue-700">
+                                    <input type="checkbox" name="check_prov" value="su_atencion" class="rounded text-blue-600 focus:ring-blue-500">
+                                    <span>Su atención</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-blue-700">
+                                    <input type="checkbox" name="check_prov" value="evaluar" class="rounded text-blue-600 focus:ring-blue-500">
+                                    <span>Evaluar</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-blue-700">
+                                    <input type="checkbox" name="check_prov" value="conocer_opinion" class="rounded text-blue-600 focus:ring-blue-500">
+                                    <span>Conocer su opinión</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-blue-700">
+                                    <input type="checkbox" name="check_prov" value="informar" class="rounded text-blue-600 focus:ring-blue-500">
+                                    <span>Informar</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-blue-700">
+                                    <input type="checkbox" name="check_prov" value="emitir_resolucion" class="rounded text-blue-600 focus:ring-blue-500">
+                                    <span>Emitir Resolución</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-blue-700">
+                                    <input type="checkbox" name="check_prov" value="consejo_universitario" class="rounded text-blue-600 focus:ring-blue-500">
+                                    <span>Consejo Universitario</span>
+                                </label>
+                            </div>
+
+                            <div class="space-y-1.5">
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-blue-700">
+                                    <input type="checkbox" name="check_prov" value="informar_presupuesto" class="rounded text-blue-600 focus:ring-blue-500">
+                                    <span>Informar disponibilidad presupuestal</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-blue-700">
+                                    <input type="checkbox" name="check_prov" value="su_difusion" class="rounded text-blue-600 focus:ring-blue-500">
+                                    <span>Su difusión</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-blue-700">
+                                    <input type="checkbox" name="check_prov" value="preparar_respuesta" class="rounded text-blue-600 focus:ring-blue-500">
+                                    <span>Preparar respuesta</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-blue-700">
+                                    <input type="checkbox" name="check_prov" value="emitir_dictamen" class="rounded text-blue-600 focus:ring-blue-500">
+                                    <span>Emitir dictamen</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-blue-700">
+                                    <input type="checkbox" name="check_prov" value="represente" class="rounded text-blue-600 focus:ring-blue-500">
+                                    <span>Represente</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-blue-700">
+                                    <input type="checkbox" name="check_prov" value="fines_pertinentes" class="rounded text-blue-600 focus:ring-blue-500">
+                                    <span>Fines Pertinentes</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fila 7: Disposición -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Disposición / Texto del Proveído</label>
+                        <textarea id="prov-disposicion" rows="2" placeholder="Ej. DISPONGASE LA EVALUACION INMEDIATA..." class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500"></textarea>
+                    </div>
+
+                    <!-- Botones footer -->
+                    <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                        <button type="button" onclick="cerrarModalProveido()" class="px-4 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
+                        <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition">Guardar Proveído</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================= MODAL ELEVACIÓN ======================= -->
+    <div id="modal-elevacion" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" onclick="cerrarModalElevacion()"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 z-10 space-y-4 my-8">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-lg font-bold text-slate-900" id="modal-elev-titulo">Registrar Nueva Elevación</h2>
+                            <span id="badge-clonando-elev" class="hidden text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-indigo-100 text-indigo-800">Copia de Elevación</span>
+                        </div>
+                        <p class="text-xs text-slate-500">Documento de elevación al Consejo Directivo u otras dependencias.</p>
+                    </div>
+                    <button onclick="cerrarModalElevacion()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <!-- Selector de Plantillas para Elevación -->
+                <div class="bg-indigo-50/70 border border-indigo-100 p-3 rounded-xl space-y-2">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <span class="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                            <span>⚡ Plantillas Predefinidas de Elevación:</span>
+                            <span class="text-[11px] font-normal text-indigo-700">Autocompleta texto, casillas y destinatario</span>
+                        </span>
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" onclick="abrirModalNuevaPlantilla('elevacion')" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1 rounded-md shadow-xs transition flex items-center gap-1">
+                                <span>➕</span> Guardar actual como Plantilla
+                            </button>
+                            <button type="button" onclick="abrirModalGestionPlantillas('elevacion')" title="Gestionar y ver todas las plantillas" class="text-xs bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold px-2 py-1 rounded-md transition flex items-center gap-1">
+                                <span>⚙️</span>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Badges dinámicos de plantillas elevación -->
+                    <div id="plantillas-container-elev" class="flex flex-wrap items-center gap-1.5 pt-1">
+                        <!-- Generados dinámicamente con los datos reales -->
+                    </div>
+                </div>
+
+                <form id="form-elevacion" onsubmit="guardarElevacion(event)" class="space-y-4">
+                    <input type="hidden" id="elev-id">
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">N° de Elevación</label>
+                            <input type="number" id="elev-numero" min="1" step="1" required
+                                   onkeydown="if(event.key === '-' || event.key === 'e' || event.key === '+' || event.key === '.') event.preventDefault();"
+                                   oninput="if(this.value < 1 && this.value !== '') this.value = 1;"
+                                   class="w-full text-base font-bold text-indigo-700 bg-white border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Año</label>
+                            <input type="number" id="elev-anio" min="2020" value="2026" class="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Sufijo Institucional</label>
+                            <input type="text" id="elev-sufijo" value="-2026-UNHEVAL/EPG-D" class="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-semibold text-slate-700">Destinatario</label>
+                            <button type="button" onclick="setDestinatarioElev('CONSEJO DIRECTIVO DE LA ESCUELA DE POSGRADO')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-medium">Consejo Directivo</button>
+                        </div>
+                        <input type="text" id="elev-destinatario" required placeholder="Ej. CONSEJO DIRECTIVO DE LA ESCUELA DE POSGRADO" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Asunto de la Elevación</label>
+                        <textarea id="elev-asunto" rows="2" required placeholder="Describa el asunto completo..." class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Documento de Referencia (REF.)</label>
+                            <input type="text" id="elev-referencia" placeholder="Ej. INFORME N° 118-2025-COA-EPG-UNHEVAL" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Remitente / Comisión</label>
+                            <input type="text" id="elev-remitente-ref" placeholder="Ej. COMISIÓN ACADÉMICA DE LA ESCUELA DE POSGRADO" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="relative">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">N° de Registro (REG)</label>
+                            <input type="text" id="elev-registro" oninput="debounceVerificarRegElev()" placeholder="Ej. 13838" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                            <!-- Duplicate Alert Badge -->
+                            <div id="alerta-reg-duplicado-elev" class="hidden mt-1 p-2 bg-amber-50 border border-amber-200 rounded-md text-[11px] text-amber-800 flex items-start gap-1">
+                                <span class="font-bold">⚠️</span>
+                                <span id="alerta-reg-texto-elev"></span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Fecha Recibido</label>
+                            <input type="date" id="elev-fecha-recibido" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-xs font-semibold text-slate-700">Fecha Emisión</label>
+                                <button type="button" onclick="setHoy('elev-fecha-emision')" class="text-[11px] text-indigo-600 hover:underline">Hoy</button>
+                            </div>
+                            <input type="date" id="elev-fecha-emision" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+
+                    <!-- Checkboxes oficiales de la EPG para Elevaciones -->
+                    <div class="border border-slate-200 rounded-xl p-3 bg-slate-50/70">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Para (Acciones a realizar)</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                            <div class="space-y-1.5">
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-700">
+                                    <input type="checkbox" name="check_elev" value="su_conocimiento" class="rounded text-indigo-600 focus:ring-indigo-500">
+                                    <span>Su conocimiento</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-700">
+                                    <input type="checkbox" name="check_elev" value="su_atencion" class="rounded text-indigo-600 focus:ring-indigo-500">
+                                    <span>Su atención</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-700">
+                                    <input type="checkbox" name="check_elev" value="evaluar" class="rounded text-indigo-600 focus:ring-indigo-500">
+                                    <span>Evaluar</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-700">
+                                    <input type="checkbox" name="check_elev" value="conocer_opinion" class="rounded text-indigo-600 focus:ring-indigo-500">
+                                    <span>Conocer su opinión</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-700">
+                                    <input type="checkbox" name="check_elev" value="informar" class="rounded text-indigo-600 focus:ring-indigo-500">
+                                    <span>Informar</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-700">
+                                    <input type="checkbox" name="check_elev" value="emitir_resolucion" class="rounded text-indigo-600 focus:ring-indigo-500">
+                                    <span>Emitir Resolución</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-700">
+                                    <input type="checkbox" name="check_elev" value="consejo_universitario" class="rounded text-indigo-600 focus:ring-indigo-500">
+                                    <span>Consejo Universitario</span>
+                                </label>
+                            </div>
+
+                            <div class="space-y-1.5">
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-700">
+                                    <input type="checkbox" name="check_elev" value="informar_presupuesto" class="rounded text-indigo-600 focus:ring-indigo-500">
+                                    <span>Informar disponibilidad presupuestal</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-700">
+                                    <input type="checkbox" name="check_elev" value="su_difusion" class="rounded text-indigo-600 focus:ring-indigo-500">
+                                    <span>Su difusión</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-700">
+                                    <input type="checkbox" name="check_elev" value="preparar_respuesta" class="rounded text-indigo-600 focus:ring-indigo-500">
+                                    <span>Preparar respuesta</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-700">
+                                    <input type="checkbox" name="check_elev" value="emitir_dictamen" class="rounded text-indigo-600 focus:ring-indigo-500">
+                                    <span>Emitir dictamen</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-700">
+                                    <input type="checkbox" name="check_elev" value="represente" class="rounded text-indigo-600 focus:ring-indigo-500">
+                                    <span>Represente</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-700">
+                                    <input type="checkbox" name="check_elev" value="fines_pertinentes" class="rounded text-indigo-600 focus:ring-indigo-500">
+                                    <span>Fines Pertinentes</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Disposición de la Elevación -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Disposición / Texto de la Elevación</label>
+                        <textarea id="elev-disposicion" rows="2" placeholder="Ej. ELEVO PARA SU CONOCIMIENTO Y FINES PERTINENTES..." class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500"></textarea>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                        <button type="button" onclick="cerrarModalElevacion()" class="px-4 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
+                        <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition">Guardar Elevación</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================= MODAL CONFIRMAR BORRADO (MOVER A PAPELERA) ======================= -->
+    <div id="modal-confirmar-borrado" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" onclick="cerrarModalConfirmarBorrado()"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 z-10 space-y-4">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </div>
+                    <div class="space-y-1">
+                        <h3 class="text-base font-bold text-slate-900" id="confirm-borrado-titulo">¿Mover a la Papelera de Reciclaje?</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed" id="confirm-borrado-mensaje">
+                            El documento será enviado al historial de borrados. Permanecerá allí durante <strong>30 días (1 mes)</strong> por si necesita recuperarlo.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-xs text-amber-800 flex items-center gap-2">
+                    <span class="text-base">💡</span>
+                    <span>Podrás restaurar este documento en cualquier momento desde la pestaña <strong>🗑️ Papelera</strong>.</span>
+                </div>
+
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100">
+                    <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-500 hover:text-slate-800 select-none">
+                        <input type="checkbox" id="check-no-volver-a-preguntar" class="rounded text-rose-600 focus:ring-rose-500">
+                        <span>No volver a preguntar (mover directo)</span>
+                    </label>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="cerrarModalConfirmarBorrado()" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+                            Cancelar
+                        </button>
+                        <button type="button" id="btn-ejecutar-borrado" class="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-sm transition flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            Sí, mover a papelera
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <!-- ======================= MODAL GUARDAR NUEVA PLANTILLA ======================= -->
+    <div id="modal-guardar-plantilla" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" onclick="cerrarModalNuevaPlantilla()"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 z-10 space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="p-2 rounded-lg bg-emerald-50 text-emerald-700 text-lg">💾</span>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900">Guardar como Nueva Plantilla</h3>
+                            <p class="text-xs text-slate-500" id="plantilla-doc-tipo-desc">Se guardará a partir del formulario actual</p>
+                        </div>
+                    </div>
+                    <button onclick="cerrarModalNuevaPlantilla()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <form id="form-guardar-plantilla" onsubmit="guardarNuevaPlantilla(event)" class="space-y-4">
+                    <input type="hidden" id="plantilla-tipo-doc" value="proveido">
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre de la Plantilla *</label>
+                        <input type="text" id="plantilla-nombre" required placeholder="Ej. Trámite de Pago Docentes, Examen de Grado..." class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 font-medium">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Ícono representativo</label>
+                        <div class="flex flex-wrap gap-1.5" id="plantilla-iconos-picker">
+                            <button type="button" onclick="seleccionarIconoPlantilla('📋')" class="emoji-picker-btn text-base p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 active bg-emerald-50 border-emerald-400">📋</button>
+                            <button type="button" onclick="seleccionarIconoPlantilla('💳')" class="emoji-picker-btn text-base p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">💳</button>
+                            <button type="button" onclick="seleccionarIconoPlantilla('🎓')" class="emoji-picker-btn text-base p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">🎓</button>
+                            <button type="button" onclick="seleccionarIconoPlantilla('📜')" class="emoji-picker-btn text-base p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">📜</button>
+                            <button type="button" onclick="seleccionarIconoPlantilla('📑')" class="emoji-picker-btn text-base p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">📑</button>
+                            <button type="button" onclick="seleccionarIconoPlantilla('🏛️')" class="emoji-picker-btn text-base p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">🏛️</button>
+                            <button type="button" onclick="seleccionarIconoPlantilla('⚖️')" class="emoji-picker-btn text-base p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">⚖️</button>
+                            <button type="button" onclick="seleccionarIconoPlantilla('💻')" class="emoji-picker-btn text-base p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">💻</button>
+                            <button type="button" onclick="seleccionarIconoPlantilla('📌')" class="emoji-picker-btn text-base p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">📌</button>
+                            <button type="button" onclick="seleccionarIconoPlantilla('⚡')" class="emoji-picker-btn text-base p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">⚡</button>
+                            <button type="button" onclick="seleccionarIconoPlantilla('🔍')" class="emoji-picker-btn text-base p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">🔍</button>
+                            <button type="button" onclick="seleccionarIconoPlantilla('📝')" class="emoji-picker-btn text-base p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">📝</button>
+                        </div>
+                        <input type="hidden" id="plantilla-icono-seleccionado" value="📋">
+                    </div>
+
+                    <!-- Vista previa del contenido a guardar -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2 text-xs">
+                        <span class="font-bold text-slate-800 uppercase text-[10px] tracking-wider block">Vista previa de lo que se guardará:</span>
+                        <div>
+                            <span class="text-slate-500 font-medium">Asunto:</span>
+                            <p id="plantilla-preview-asunto" class="text-slate-800 font-semibold line-clamp-2 italic">(Sin asunto)</p>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 font-medium">Disposición:</span>
+                            <p id="plantilla-preview-disposicion" class="text-slate-800 line-clamp-2 italic">(Sin disposición)</p>
+                        </div>
+                        <div class="flex items-center gap-2 pt-1 border-t border-slate-200">
+                            <span class="text-slate-500 font-medium">Casillas marcadas:</span>
+                            <span id="plantilla-preview-checks" class="font-bold text-blue-700">0 seleccionadas</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                        <button type="button" onclick="cerrarModalNuevaPlantilla()" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
+                        <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition flex items-center gap-1.5">
+                            <span>💾</span> Guardar Plantilla
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================= MODAL GESTIÓN DE PLANTILLAS ======================= -->
+    <div id="modal-gestion-plantillas" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" onclick="cerrarModalGestionPlantillas()"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 z-10 space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="p-2 rounded-lg bg-blue-50 text-blue-700 text-lg">⚙️</span>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900">Administrador de Plantillas</h3>
+                            <p class="text-xs text-slate-500" id="gestion-plantillas-desc">Catálogo de plantillas para auto-completar documentos rápidamente</p>
+                        </div>
+                    </div>
+                    <button onclick="cerrarModalGestionPlantillas()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <!-- Lista de Plantillas -->
+                <div id="gestion-plantillas-lista" class="max-h-[60vh] overflow-y-auto space-y-2.5 pr-1">
+                    <div class="p-6 text-center text-slate-400 text-xs">Cargando plantillas...</div>
+                </div>
+
+                <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
+                    <span class="text-slate-500">💡 Las plantillas predeterminadas del sistema son permanentes para asegurar la estandarización oficial.</span>
+                    <button type="button" onclick="cerrarModalGestionPlantillas()" class="px-4 py-2 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container for sleek notifications -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Datalist for autocomplete -->
+    <datalist id="destinatarios-sugerencias"></datalist>
+
+    <script src="/static/js/main.js?v=20260927_06"></script>
+</body>
+</html>
