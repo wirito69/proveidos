@@ -515,14 +515,23 @@ async function cargarPlantillasUI(tipo = 'proveido') {
             : 'hover:bg-indigo-100 text-indigo-900 border-indigo-200';
 
         container.innerHTML = data.map(p => `
-            <button type="button" 
-                    onclick="aplicarPlantillaPorId('${tipo}', ${p.id})" 
-                    title="${p.nombre}: ${escapeHtml((p.asunto || '').slice(0, 80))}..."
-                    class="text-xs bg-white ${colorClass} border px-2.5 py-1 rounded-md font-semibold transition flex items-center gap-1.5 shadow-2xs hover:shadow-xs">
-                <span>${p.icono || '📋'}</span>
-                <span>${escapeHtml(p.nombre)}</span>
-                ${p.es_predeterminada ? '' : '<span class="text-[10px] text-emerald-600 font-bold" title="Plantilla personalizada">★</span>'}
-            </button>
+            <div class="inline-flex items-center rounded-lg border border-slate-200 bg-white hover:border-slate-300 shadow-2xs transition group overflow-hidden">
+                <button type="button" 
+                        onclick="aplicarPlantillaPorId('${tipo}', ${p.id})" 
+                        title="Aplicar plantilla: ${p.nombre}"
+                        class="text-xs ${colorClass} px-2.5 py-1 font-semibold flex items-center gap-1.5 transition">
+                    <span>${p.icono || '📋'}</span>
+                    <span>${escapeHtml(p.nombre)}</span>
+                    ${p.es_predeterminada ? '' : '<span class="text-[10px] text-emerald-600 font-bold" title="Plantilla personalizada">★</span>'}
+                </button>
+                <button type="button"
+                        onclick="event.stopPropagation(); eliminarPlantillaUsuario(${p.id}, '${escapeHtml(p.nombre)}', '${tipo}')"
+                        title="Eliminar plantilla '${escapeHtml(p.nombre)}'"
+                        class="text-slate-300 hover:text-rose-600 hover:bg-rose-50 px-2 py-1 text-xs border-l border-slate-100 transition font-bold"
+                        style="line-height: 1.2;">
+                    ✕
+                </button>
+            </div>
         `).join('');
 
     } catch (e) {
@@ -785,13 +794,12 @@ async function refrescarListaGestionPlantillas() {
                             class="px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition flex items-center gap-1">
                         <span>⚡</span> Usar
                     </button>
-                    ${!p.es_predeterminada ? `
-                        <button type="button" 
-                                onclick="eliminarPlantillaUsuario(${p.id}, '${escapeHtml(p.nombre)}')"
-                                class="px-2.5 py-1 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition flex items-center gap-1">
-                            <span>🗑️</span> Eliminar
-                        </button>
-                    ` : ''}
+                    <button type="button" 
+                            onclick="eliminarPlantillaUsuario(${p.id}, '${escapeHtml(p.nombre)}', '${currentGestionTipo}')"
+                            class="px-2.5 py-1 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition flex items-center gap-1"
+                            title="Eliminar esta plantilla">
+                        <span>🗑️</span> Eliminar
+                    </button>
                 </div>
             </div>
         `).join('');
@@ -802,22 +810,50 @@ async function refrescarListaGestionPlantillas() {
     }
 }
 
-async function eliminarPlantillaUsuario(id, nombre) {
-    if (!confirm(`¿Está seguro de eliminar la plantilla personalizada "${nombre}"?`)) return;
+async function eliminarPlantillaUsuario(id, nombre, tipo = null) {
+    const targetTipo = tipo || currentGestionTipo;
+    if (!confirm(`¿Está seguro de eliminar la plantilla "${nombre}"?\n\nEsta acción quitará la plantilla de sus accesos rápidos.`)) return;
 
     try {
         const res = await fetch(`/api/plantillas/${id}`, { method: 'DELETE' });
         const data = await res.json();
         if (data.success) {
-            mostrarToast(`Plantilla "${nombre}" eliminada`, 'info');
-            await refrescarListaGestionPlantillas();
-            await cargarPlantillasUI(currentGestionTipo);
+            mostrarToast(`✓ Plantilla "${nombre}" eliminada`, 'trash');
+            await cargarPlantillasUI(targetTipo);
+            const modalGestion = document.getElementById('modal-gestion-plantillas');
+            if (modalGestion && !modalGestion.classList.contains('hidden')) {
+                await refrescarListaGestionPlantillas();
+            }
         } else {
-            alert("No se pudo eliminar la plantilla.");
+            alert("No se pudo eliminar la plantilla: " + (data.error || "Desconocido"));
         }
     } catch (e) {
         console.error(e);
         alert("Error de conexión al eliminar plantilla.");
+    }
+}
+
+async function restablecerPlantillasPredeterminadas() {
+    const nombreTipo = currentGestionTipo === 'proveido' ? 'Proveídos' : 'Elevaciones';
+    if (!confirm(`¿Desea restablecer todas las plantillas predeterminadas de ${nombreTipo} al estándar oficial de la EPG?\n\nSe volverán a incorporar las plantillas institucionales originales.`)) return;
+
+    try {
+        const res = await fetch('/api/plantillas/restablecer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tipo: currentGestionTipo })
+        });
+        const data = await res.json();
+        if (data.success) {
+            mostrarToast(`✓ Plantillas de ${nombreTipo} restablecidas con éxito`, 'success');
+            await refrescarListaGestionPlantillas();
+            await cargarPlantillasUI(currentGestionTipo);
+        } else {
+            alert("Error al restablecer plantillas: " + (data.error || "Desconocido"));
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Error de conexión al restablecer plantillas.");
     }
 }
 

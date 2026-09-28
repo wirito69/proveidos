@@ -953,7 +953,7 @@ def init_plantillas_table():
             seed_default_plantillas(conn)
         conn.commit()
 
-def seed_default_plantillas(conn):
+def seed_default_plantillas(conn, force_tipo=None):
     prov_seeds = [
         {
             "tipo_doc": "proveido",
@@ -1077,17 +1077,19 @@ def seed_default_plantillas(conn):
         }
     ]
 
-    for p in prov_seeds:
-        conn.execute("""
-            INSERT INTO plantillas (tipo_doc, nombre, icono, asunto, disposicion, destinatarios, check_opciones, es_predeterminada)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-        """, (p['tipo_doc'], p['nombre'], p['icono'], p['asunto'], p['disposicion'], json.dumps(p['destinatarios'], ensure_ascii=False), json.dumps(p['check_opciones'], ensure_ascii=False)))
+    if force_tipo is None or force_tipo == 'proveido':
+        for p in prov_seeds:
+            conn.execute("""
+                INSERT INTO plantillas (tipo_doc, nombre, icono, asunto, disposicion, destinatarios, check_opciones, es_predeterminada)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+            """, (p['tipo_doc'], p['nombre'], p['icono'], p['asunto'], p['disposicion'], json.dumps(p['destinatarios'], ensure_ascii=False), json.dumps(p['check_opciones'], ensure_ascii=False)))
 
-    for e in elev_seeds:
-        conn.execute("""
-            INSERT INTO plantillas (tipo_doc, nombre, icono, asunto, disposicion, destinatario, check_opciones, es_predeterminada)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-        """, (e['tipo_doc'], e['nombre'], e['icono'], e['asunto'], e['disposicion'], e['destinatario'], json.dumps(e['check_opciones'], ensure_ascii=False)))
+    if force_tipo is None or force_tipo == 'elevacion':
+        for e in elev_seeds:
+            conn.execute("""
+                INSERT INTO plantillas (tipo_doc, nombre, icono, asunto, disposicion, destinatario, check_opciones, es_predeterminada)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+            """, (e['tipo_doc'], e['nombre'], e['icono'], e['asunto'], e['disposicion'], e['destinatario'], json.dumps(e['check_opciones'], ensure_ascii=False)))
 
 def get_plantillas(tipo_doc='proveido'):
     init_plantillas_table()
@@ -1138,3 +1140,12 @@ def delete_plantilla(plantilla_id):
         conn.execute("DELETE FROM plantillas WHERE id = ?", (plantilla_id,))
         conn.commit()
         return True
+
+def reset_default_plantillas(tipo_doc='proveido'):
+    init_plantillas_table()
+    with get_db() as conn:
+        conn.execute("DELETE FROM plantillas WHERE tipo_doc = ? AND es_predeterminada = 1", (tipo_doc,))
+        seed_default_plantillas(conn, force_tipo=tipo_doc)
+        conn.commit()
+        return True
+

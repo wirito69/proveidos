@@ -349,6 +349,17 @@ def api_delete_plantilla(pid):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 400
 
+@app.route('/api/plantillas/restablecer', methods=['POST'])
+def api_restablecer_plantillas():
+    try:
+        data = request.json or {}
+        tipo = data.get('tipo', 'proveido')
+        db.reset_default_plantillas(tipo)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
 
 if __name__ == '__main__':
     print("==================================================================")
