@@ -5,3 +5,5 @@ PROVEIDOS_Y_ELEVACIONES_EPG_*.xlsx
 database.db
 .vscode/
 .idea/
+
+.vercel
