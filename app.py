@@ -1,7 +1,12 @@
 from flask import Flask, render_template, request, jsonify, send_file
-import database as db
 import datetime
 import os
+
+# Usar Supabase si la variable de entorno está configurada, sino SQLite local
+if os.environ.get('SUPABASE_URL') or os.environ.get('SUPABASE_KEY'):
+    import supabase_db as db
+else:
+    import database as db
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__,
