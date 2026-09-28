@@ -728,3 +728,85 @@ def export_to_excel(output_filename):
 
     wb.save(output_filename)
 
+
+# ==========================================
+# ALIASES Y FUNCIONES FALTANTES
+# (Compatibilidad total con database.py / app.py)
+# ==========================================
+
+def restaurar_proveido(pid):
+    return restaurar_elemento('proveido', pid)
+
+def restaurar_elevacion(eid):
+    return restaurar_elemento('elevacion', eid)
+
+def eliminar_permanente_proveido(pid):
+    return eliminar_permanente('proveido', pid)
+
+def eliminar_permanente_elevacion(eid):
+    return eliminar_permanente('elevacion', eid)
+
+def marcar_elevacion_impreso(eid):
+    """Alias de marcar_elevacion_impresa para compatibilidad con app.py"""
+    return marcar_elevacion_impresa(eid)
+
+def get_dashboard_analytics():
+    """Alias de get_analytics_dashboard para compatibilidad con app.py"""
+    return get_analytics_dashboard()
+
+def get_estadisticas():
+    try:
+        _, prov_total = sb_request('GET', 'proveidos', params={'select': 'id', 'eliminado': 'eq.0'}, prefer='count=exact')
+        _, elev_total = sb_request('GET', 'elevaciones', params={'select': 'id', 'eliminado': 'eq.0'}, prefer='count=exact')
+        _, prov_pend  = sb_request('GET', 'proveidos', params={'select': 'id', 'eliminado': 'eq.0', 'impreso': 'eq.0'}, prefer='count=exact')
+        _, elev_pend  = sb_request('GET', 'elevaciones', params={'select': 'id', 'eliminado': 'eq.0', 'impreso': 'eq.0'}, prefer='count=exact')
+        return {
+            'total_proveidos': prov_total or 0,
+            'total_elevaciones': elev_total or 0,
+            'proveidos_pendientes': prov_pend or 0,
+            'elevaciones_pendientes': elev_pend or 0,
+        }
+    except Exception as e:
+        print("Error get_estadisticas Supabase:", e)
+        return {'total_proveidos': 0, 'total_elevaciones': 0, 'proveidos_pendientes': 0, 'elevaciones_pendientes': 0}
+
+def get_destinatarios_sugerencias(term=''):
+    """Destinatarios frecuentes filtrados por term"""
+    try:
+        params = {'order': 'frecuencia.desc,nombre.asc'}
+        if term:
+            params['nombre'] = f'ilike.%{term}%'
+        rows, _ = sb_request('GET', 'destinatarios_frecuentes', params=params)
+        return rows or []
+    except Exception as e:
+        print("Error get_destinatarios_sugerencias Supabase:", e)
+        return []
+
+def verificar_reg_duplicado(reg):
+    if not reg or not reg.strip():
+        return {'duplicado': False}
+    try:
+        r_p, _ = sb_request('GET', 'proveidos',   params={'registro': f'eq.{reg.strip()}', 'eliminado': 'eq.0', 'select': 'id,numero,codigo_formateado,sufijo'})
+        r_e, _ = sb_request('GET', 'elevaciones', params={'registro': f'eq.{reg.strip()}', 'eliminado': 'eq.0', 'select': 'id,numero,codigo_formateado,sufijo'})
+        encontrados = []
+        for p in (r_p or []):
+            encontrados.append({'tipo': 'proveido',  'id': p['id'], 'codigo': p['codigo_formateado'] + p['sufijo']})
+        for e in (r_e or []):
+            encontrados.append({'tipo': 'elevacion', 'id': e['id'], 'codigo': e['codigo_formateado'] + e['sufijo']})
+        return {'duplicado': len(encontrados) > 0, 'encontrados': encontrados}
+    except Exception as e:
+        print("Error verificar_reg_duplicado Supabase:", e)
+        return {'duplicado': False}
+
+def purgar_papelera():
+    """Elimina permanentemente elementos en papelera con mas de 30 dias"""
+    try:
+        import datetime
+        limite = (datetime.datetime.now() - datetime.timedelta(days=30)).strftime('%Y-%m-%d')
+        sb_request('DELETE', f'proveidos?eliminado=eq.1&fecha_eliminacion=lt.{limite}')
+        sb_request('DELETE', f'elevaciones?eliminado=eq.1&fecha_eliminacion=lt.{limite}')
+        return True
+    except Exception as e:
+        print("Error purgar_papelera Supabase:", e)
+        return False
+
