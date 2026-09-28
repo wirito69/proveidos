@@ -29,6 +29,19 @@ def format_fecha_oficial(fecha_str):
     except:
         return fecha_str
 
+@app.errorhandler(404)
+def handle_404(e):
+    return jsonify({
+        'error': '404',
+        'path': request.path,
+        'full_path': request.full_path,
+        'PATH_INFO': request.environ.get('PATH_INFO'),
+        'REQUEST_URI': request.environ.get('REQUEST_URI'),
+        'RAW_URI': request.environ.get('RAW_URI'),
+        'HTTP_X_MATCHED_PATH': request.environ.get('HTTP_X_MATCHED_PATH'),
+        'x_now_route_matches': request.environ.get('HTTP_X_NOW_ROUTE_MATCHES')
+    }), 404
+
 @app.route('/')
 def index():
     return render_template('index.html')
