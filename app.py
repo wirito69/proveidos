@@ -3,7 +3,10 @@ import database as db
 import datetime
 import os
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app = Flask(__name__,
+            template_folder=os.path.join(BASE_DIR, 'templates'),
+            static_folder=os.path.join(BASE_DIR, 'static'))
 app.config['JSON_AS_ASCII'] = False
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.jinja_env.auto_reload = True
@@ -317,7 +320,8 @@ def imprimir_elevacion_rango():
 @app.route('/api/exportar-excel', methods=['GET'])
 def exportar_excel():
     filename = f"PROVEIDOS_Y_ELEVACIONES_EPG_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    path = os.path.join(os.getcwd(), filename)
+    tmp_dir = '/tmp' if os.environ.get('VERCEL') else os.getcwd()
+    path = os.path.join(tmp_dir, filename)
     db.export_to_excel(path)
     return send_file(path, as_attachment=True, download_name=filename)
 

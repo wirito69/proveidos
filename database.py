@@ -5,10 +5,20 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 import os
 
-DB_PATH = 'proveidos.db'
+DB_DIR = os.path.dirname(os.path.abspath(__file__))
+ORIGINAL_DB = os.path.join(DB_DIR, 'proveidos.db')
+
+def get_db_path():
+    if os.environ.get('VERCEL'):
+        import shutil
+        target = '/tmp/proveidos.db'
+        if not os.path.exists(target) and os.path.exists(ORIGINAL_DB):
+            shutil.copy2(ORIGINAL_DB, target)
+        return target
+    return ORIGINAL_DB
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(get_db_path())
     conn.row_factory = sqlite3.Row
     return conn
 
